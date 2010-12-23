@@ -1,0 +1,23 @@
+Install Java, Simple Build Tool
+
+http://code.google.com/p/simple-build-tool/
+
+
+Edit this file with your mysql settings
+src/main/resources/props/default.props 
+
+Then cd into grid and type:
+sbt
+
+At the sbt prompt, type:
+update
+
+#This may take a while the first time, it will download dependences.
+
+Then:
+jetty-run
+
+Point your browser to:
+http://localhost:8080/
+
+

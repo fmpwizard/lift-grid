@@ -1,0 +1,2 @@
+ldap.url = ldap://ldap-b.mysql.com
+ldap.base = dc=mysql,dc=com

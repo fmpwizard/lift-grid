@@ -1,0 +1,6 @@
+# Properties in this file will be read when running in dev mode
+db.driver=com.mysql.jdbc.Driver
+#db.url=jdbc:mysql://127.0.0.1:5132/qadashboard
+db.url=jdbc:mysql://127.0.0.1:14040/qadashboard
+db.user=msandbox
+db.password=msandbox
