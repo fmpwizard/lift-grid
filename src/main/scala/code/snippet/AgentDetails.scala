@@ -2,7 +2,7 @@ package code {
 package snippet {
 
 
-import _root_.scala.xml.{NodeSeq, Text}
+import _root_.scala.xml.{NodeSeq, Text, Elem}
 
 import _root_.net.liftweb._
 import util._
@@ -23,8 +23,11 @@ class AgentDetails extends Logger {
 
 
 
-  info(showingVersion)
-  def renderAgentResult( xhtml: NodeSeq ) = {
+  //info(showingVersion)
+
+
+
+  def renderAgentResult = {
     val testResultNoSSL= Map(
                             "Sol 10 Sparc 32Bit" -> ("Solaris", "PASS"), 
                             "Sol 10 Sparc 64"    -> ("Solaris", "PASS"), 
@@ -52,101 +55,45 @@ class AgentDetails extends Logger {
                             )
 
 
-/**
-  * This is first horrible and 2nd, it does not do what I wanted.
-  */
+    case class Result(OS: String, pass: Boolean) {
+      def clss = if (pass) "success" else "error"
+    }
 
-    val  x= testResultNoSSL.zip(testResultSSL).map(
-            row => ( row._1._1, (row._1._2._1, row._1._2._2, row._2._2._2 ) )
-          ).toMap.zip(testResultNoSSLQuan).toList.map(
-            row => ( row._1._1, (row._1._2._1, row._1._2._2, row._1._2._3, row._2._2._2 ) )
-          ).toMap.zip(testResultSSLQuan).toList.map(
-            row => ( row._1._1, (row._1._2._1, row._1._2._2, row._1._2._3, row._1._2._4, row._2._2._2 ) )
-          ).toMap.zip(testResult200Scalability).toList.map(
-            row => ( row._1._1, row._1._2._1, row._1._2._2, row._1._2._3, row._1._2._4, row._1._2._5, row._2._2._2 )
-          )
+    case class TestRow(tests: Map[Int, Option[Result]])
 
 
-    info(x)
+    // a list of all our tests
+    val tests = List(testResultNoSSL, testResultSSL, testResultNoSSLQuan, testResultSSLQuan, testResult200Scalability)
 
-    val  testResultList= testResultNoSSL.zip(
-                            testResultSSL).zip(
-                              testResultNoSSLQuan).zip(
-                                testResultSSLQuan).zip(
-                                  testResult200Scalability).map(
-        row => (
-                row._1._1._1._1._1,
-                row._1._1._1._1._2._1,
-                row._1._1._1._1._2._2,
-                row._1._1._1._2._2._2,
-                row._1._1._2._2._2,
-                row._1._2._2._2,
-                row._2._2._2
-                )
-      ).toList
+    // a set of the keys of the tests
+    val osSet = Set(tests.flatMap(_.keys) :_*)
 
-/**
-  * End of horrible code
-  */
+    val results: Map[String, TestRow] = Map(osSet.toSeq.map{
+      set =>
+        (set, TestRow(Map(tests.zipWithIndex.map {
+          case (test, idx) => idx -> test.get(set).map{
+                                                      case (os, pass) => Result(os, pass == "PASS")
+                                                      }
+        } :_*)))
+      }:_*)
 
 
-    bind("test",xhtml,
-        "version" -> showingVersion,
+    def dd(f: NodeSeq => NodeSeq): NodeSeq => NodeSeq = {
+      case e: Elem => f(e.child)
+      case x => f(x)
+    }
 
-/**
-  * the conditions are supposed to look at the real data and if FAIL, then set the
-  * class name to error so that it will 
-  * show as red
-  */
-
-        FuncAttrBindParam(
-            "classname_no_ssl", {
-              ns : NodeSeq => Text(if (true) "error" else "success" )
-            }, "class"
-          ),
-
-        FuncAttrBindParam(
-            "classname_ssl", {
-              ns : NodeSeq => Text(if ("sSL" == "FAIL") "error" else "success" )
-            }, "class"
-          ),
-
-        FuncAttrBindParam(
-            "classname_agent_200_scalability", {
-              ns : NodeSeq => Text(if ("agent200Scalability" == "FAIL") "error" else "success" )
-            }, "class"
-          ),
-
-        FuncAttrBindParam(
-            "classname_no_ssl_quan", {
-              ns : NodeSeq => Text(if ("noSSLQuan" == "FAIL") "error" else "success" )
-            }, "class"
-          ),
-
-        FuncAttrBindParam(
-            "classname_ssl_quan", {
-              ns : NodeSeq => Text(if ("sSLQuan" == "FAIL") "error" else "success" )
-            }, "class"
-          ),
-
-        /**
-          * On the final version, these lines should set the cels to 
-          * PASS or FAIL (and N/A if we don't have the results yet
-          */
-
-        "platform" -> "platform",
-        "no_ssl" -> "noSSL",
-        "ssl" -> "sSL",
-        "agent_proxy_no_ssl_quan" -> "noSSLQuan",
-        "agent_proxy_ssl_quan" -> "sSLQuan",
-        "200_agent_scalability" -> "agent200Scalability"
-    )
-
+    ClearClearable andThen
+    "h2 *" #> dd(_ ++ Text(showingVersion)) &
+    "#row *" #> results.map {
+      case (name, row) => "#col" #> (
+        ("* *" #> name) :: row.tests.toList.map {
+          case (pos, Some(res)) => "* *" #> name   & "* [class]" #> res.clss
+          case (pos, _) => "* *" #> "N/A" & "* [class]" #> "notice"
+        }
+        )
+    }
   }
-  
-
-
-
 }
 
 }
